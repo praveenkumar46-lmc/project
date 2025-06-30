@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>D'vine Healthcare - Login</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #f0f2f5;
+      font-family: Arial, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    .login-container {
+      background: #fff;
+      padding: 35px 30px;
+      border-radius: 12px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+      max-width: 400px;
+      width: 100%;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 25px;
+      color: #2c3e50;
+    }
+    .form-group {
+      margin-bottom: 20px;
+      position: relative;
+    }
+    input, select {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 15px;
+      box-sizing: border-box;
+    }
+    input::placeholder {
+      color: #999;
+    }
+    select:invalid {
+      color: #999;
+    }
+    .password-wrapper i {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      color: #888;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #3498db;
+      color: white;
+      border: none;
+      font-size: 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background: #2980b9;
+    }
+    .footer-note {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 13px;
+      color: #888;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="login-container">
+    <h2>D'vine Healthcare Login</h2>
+    <form id="loginForm">
+      <div class="form-group">
+        <input type="email" id="email" placeholder="Enter your email" required />
+      </div>
+      <div class="form-group password-wrapper">
+        <input type="password" id="password" placeholder="Enter your password" required />
+        <i class="fas fa-eye" onclick="togglePassword(this)"></i>
+      </div>
+      <div class="form-group">
+        <select id="role" required>
+          <option value="" disabled selected>Select your role</option>
+          <option value="Admin">Admin</option>
+          <option value="Member">Member</option>
+          <option value="Guest">Guest</option>
+        </select>
+      </div>
+      <button type="submit">Login Now</button>
+    </form>
+    <div class="footer-note">
+      © 2025 D'vine Healthcare. All rights reserved.
+    </div>
+  </div>
+
+  <script>
+    const users = JSON.parse(localStorage.getItem("userData")) || [];
+    if (!users.find(u => u.email === "admin@example.com")) {
+      users.push({
+        fullname: "Admin",
+        role: "Admin",
+        email: "admin@example.com",
+        phone: "9999999999",
+        password: "admin123"
+      });
+      localStorage.setItem("userData", JSON.stringify(users));
+    }
+
+    function togglePassword(icon) {
+      const input = document.getElementById("password");
+      input.type = input.type === "password" ? "text" : "password";
+      icon.classList.toggle("fa-eye");
+      icon.classList.toggle("fa-eye-slash");
+    }
+
+    document.getElementById("loginForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value.trim();
+      const role = document.getElementById("role").value;
+
+      const users = JSON.parse(localStorage.getItem("userData")) || [];
+      const user = users.find(u =>
+        u.email === email &&
+        u.password === password &&
+        u.role.toLowerCase() === role.toLowerCase()
+      );
+
+      if (user) {
+        alert("Login Successful!");
+        if (role === "Admin") {
+          window.location.href = "admin-dashboard.html";
+        } else if (role === "Member") {
+          window.location.href = "member-dashboard.html";
+        } else {
+          window.location.href = "guest-dashboard.html";
+        }
+      } else {
+        alert("Invalid credentials or role selected.");
+      }
+    });
+  </script>
+
+</body>
+</html>

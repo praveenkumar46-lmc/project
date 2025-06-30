@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>D'vine Healthcare - Quiz</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+    body { background: #f4f6f9; min-height: 100vh; padding: 30px; }
+    .container { max-width: 700px; margin: auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    h2, h3 { text-align: center; margin-bottom: 20px; }
+    label { display: block; margin: 10px 0; }
+    input[type="email"], select, button {
+      width: 100%; padding: 10px; margin: 10px 0; font-size: 16px; border-radius: 5px; border: 1px solid #ccc;
+    }
+    button { background: green; color: white; border: none; cursor: pointer; }
+    button:hover { background: #5eba61; }
+    .question { margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 5px; }
+    .question p { font-weight: bold; }
+    #result { margin-top: 20px; text-align: center; font-size: 18px; }
+    .hidden { display: none; }
+
+
+
+
+
+    
+
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Mock Test</h2>
+
+    <!-- Email Prompt -->
+    <div id="emailSection">
+      <label for="email">Enter Email ID:</label>
+      <input type="email" id="email" required />
+      <button onclick="startQuiz()">Start Quiz</button>
+    </div>
+
+    <!-- Quiz Section -->
+    <div id="quizSection" class="hidden">
+      <select id="testSelector">
+        <option value="test1">Test 1</option>
+        <option value="test2">Test 2</option>
+      </select>
+
+      <form id="quizForm">
+        <div id="questionsContainer"></div>
+        <button type="submit">Submit Quiz</button>
+      </form>
+
+      <div id="result"></div>
+    </div>
+  </div>
+
+  <script>
+    const emailInput = document.getElementById("email");
+    const emailSection = document.getElementById("emailSection");
+    const quizSection = document.getElementById("quizSection");
+    const testSelector = document.getElementById("testSelector");
+    const quizForm = document.getElementById("quizForm");
+    const questionsContainer = document.getElementById("questionsContainer");
+    const resultDiv = document.getElementById("result");
+
+    let currentUser = "";
+
+    const quizData = {
+      test1: {
+        title: "Test 1",
+        questions: [
+          { q: "What is the capital of India?", options: ["Delhi", "Mumbai", "Chennai"], answer: "Delhi" },
+          { q: "2 + 2 = ?", options: ["3", "4", "5"], answer: "4" },
+          { q: "HTML stands for?", options: ["Hot Mail", "Hyper Text Markup Language", "How to Make Layouts"], answer: "Hyper Text Markup Language" }
+        ]
+      },
+      test2: {
+        title: "Test 2",
+        questions: [
+          { q: "Which planet is known as the Red Planet?", options: ["Earth", "Mars", "Jupiter"], answer: "Mars" },
+          { q: "CSS stands for?", options: ["Cascading Style Sheets", "Computer Style Sheets", "Colorful Style Sheets"], answer: "Cascading Style Sheets" },
+          { q: "3 * 3 = ?", options: ["6", "9", "12"], answer: "9" }
+        ]
+      }
+    };
+
+    function startQuiz() {
+      const email = emailInput.value.trim().toLowerCase();
+      if (!email) {
+        alert("Please enter your Email ID.");
+        return;
+      }
+      currentUser = email;
+      emailSection.classList.add("hidden");
+      quizSection.classList.remove("hidden");
+      renderQuestions(testSelector.value);
+    }
+
+    function renderQuestions(testId) {
+      const test = quizData[testId];
+      const stored = JSON.parse(localStorage.getItem("quizResults")) || {};
+      const userResult = stored[currentUser]?.[testId];
+
+      questionsContainer.innerHTML = "";
+      resultDiv.innerHTML = "";
+
+      if (userResult) {
+        resultDiv.innerHTML = `
+          <h3>✅ You already completed ${test.title}.</h3>
+          <p><strong>Score:</strong> ${userResult.score}/${test.questions.length}</p>
+          <p><strong>Percentage:</strong> ${userResult.percentage}%</p>
+          ${userResult.percentage >= 75 ? "<span style='color:green;'>🎉 Passed</span>" : "<span style='color:red;'>❌ Failed</span>"}
+        `;
+        quizForm.style.display = "none";
+      } else {
+        quizForm.style.display = "block";
+        test.questions.forEach((q, i) => {
+          const div = document.createElement("div");
+          div.className = "question";
+          div.innerHTML = `<p>${i + 1}. ${q.q}</p>` +
+            q.options.map(opt => `
+              <label><input type="radio" name="q${i}" value="${opt}"> ${opt}</label>
+            `).join("");
+          questionsContainer.appendChild(div);
+        });
+      }
+    }
+
+    quizForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const testId = testSelector.value;
+      const test = quizData[testId];
+      let score = 0;
+
+      test.questions.forEach((q, i) => {
+        const selected = document.querySelector(`input[name="q${i}"]:checked`);
+        if (selected && selected.value === q.answer) {
+          score++;
+        }
+      });
+
+      const percentage = ((score / test.questions.length) * 100).toFixed(2);
+      const result = { score, percentage, date: new Date().toLocaleDateString() };
+
+      const allResults = JSON.parse(localStorage.getItem("quizResults")) || {};
+      allResults[currentUser] = allResults[currentUser] || {};
+      allResults[currentUser][testId] = result;
+      localStorage.setItem("quizResults", JSON.stringify(allResults));
+
+      resultDiv.innerHTML = `
+        <p><strong>Test:</strong> ${test.title}</p>
+        <p><strong>Score:</strong> ${score}/${test.questions.length}</p>
+        <p><strong>Percentage:</strong> ${percentage}%</p>
+        ${percentage >= 75 ? "<span style='color:green;'>🎉 Passed</span>" : "<span style='color:red;'>❌ Failed</span>"}
+      `;
+      quizForm.style.display = "none";
+    });
+
+    testSelector.addEventListener("change", () => {
+      renderQuestions(testSelector.value);
+    });
+  </script>
+</body>
+</html>
