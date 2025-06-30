@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: "Segoe UI", sans-serif; }
+    body { display: flex; min-height: 100vh; background: #ecf0f1; }
+    .sidebar {
+      width: 220px; background: #2c3e50; color: white; padding-top: 30px;
+      position: fixed; height: 100%; display: flex; flex-direction: column; justify-content: space-between;
+    }
+    .sidebar .nav-links { flex-grow: 1; }
+    .sidebar a {
+      display: block; padding: 15px 20px; color: white; text-decoration: none;
+      transition: background 0.3s; cursor: pointer;
+    }
+    .sidebar a:hover { background-color: #34495e; }
+    .sidebar .logout-btn { background: #c0392b; text-align: center; }
+    .main-content {
+      margin-left: 220px; padding: 20px; flex: 1;
+    }
+    .section { display: none; }
+    .active { display: block; }
+    form {
+      background: #fff; padding: 20px; border-radius: 8px; margin-top: 10px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.05); display: flex; gap: 10px; flex-wrap: wrap;
+    }
+    form input, form select {
+      padding: 10px; border: 1px solid #ccc; border-radius: 4px;
+    }
+    form button {
+      padding: 10px 20px; background: #27ae60; color: white; border: none; border-radius: 5px; cursor: pointer;
+    }
+    table {
+      width: 100%; border-collapse: collapse; margin-top: 10px; background: white;
+    }
+    table, th, td { border: 1px solid #ccc; }
+    th, td { padding: 12px; text-align: left; }
+    th { background: #3498db; color: white; cursor: pointer; }
+    .action-btn {
+      padding: 6px 10px; margin: 0 4px; border: none; border-radius: 4px; cursor: pointer;
+    }
+    .edit-btn { background: #f39c12; color: white; }
+    .delete-btn { background: #e74c3c; color: white; }
+    .file-controls {
+      display: flex; align-items: center; gap: 10px; margin-top: 15px; flex-wrap: wrap;
+    }
+    .upload-label {
+      display: inline-block; padding: 6px 12px; background: #8e44ad; color: white;
+      border-radius: 4px; cursor: pointer; font-size: 14px;
+    }
+    #fileName { font-size: 14px; color: #333; }
+    .password-wrapper { position: relative; flex: 1; }
+    .password-wrapper input { width: 100%; padding-right: 40px; }
+    .password-wrapper i {
+      position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+      cursor: pointer; font-size: 18px; color: #555;
+    }
+    .export-btn {
+      padding: 6px 10px; font-size: 14px; background: #2980b9; color: white;
+      border: none; border-radius: 5px; cursor: pointer; margin-top: 10px; margin-right: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <div class="nav-links">
+      <a onclick="showSection('home')">Home</a>
+      <a onclick="showSection('manage')">Manage Users</a>
+    </div>
+    <a class="logout-btn" onclick="logout()">Logout</a>
+  </div>
+
+  <div class="main-content">
+    <div id="home" class="section active">
+      <h1>Welcome, Admin</h1>
+      <p>This is your admin dashboard. Use the side menu to navigate.</p>
+    </div>
+
+    <div id="manage" class="section">
+      <h1>Manage Users</h1>
+      <form id="addUserForm">
+        <input type="text" id="fullname" placeholder="Full Name" required />
+        <select id="role" required>
+          <option value="" disabled selected>Role</option>
+          <option value="Admin">Admin</option>
+          <option value="Member">Member</option>
+          <option value="Guest">Guest</option>
+        </select>
+        <input type="email" id="email" placeholder="Email" required />
+        <input type="tel" id="phone" placeholder="Phone Number" required pattern="[0-9]{10}" />
+        <div class="password-wrapper">
+          <input type="password" id="password" placeholder="Password" required />
+          <i class="fas fa-eye" onclick="togglePassword(this)"></i>
+        </div>
+        <button type="submit">Add User</button>
+      </form>
+
+      <div class="file-controls">
+        <label for="excelInput" class="upload-label"><i class="fas fa-file-upload"></i> Choose File</label>
+        <input type="file" id="excelInput" accept=".xlsx, .xls" style="display: none;" />
+        <span id="fileName"></span>
+        <div id="fileActions" style="display: none; gap: 8px;">
+          <button class="upload-btn" onclick="uploadFile()">Upload</button>
+          <button class="cancel-btn" onclick="cancelUpload()">Cancel</button>
+        </div>
+      </div>
+
+      <div>
+        <button class="export-btn" onclick="exportByRole('all')">Export All</button>
+        <button class="export-btn" onclick="exportByRole('Admin')">Export Admins</button>
+        <button class="export-btn" onclick="exportByRole('Member')">Export Members</button>
+        <button class="export-btn" onclick="exportByRole('Guest')">Export Guests</button>
+      </div>
+
+      <select id="filterBar" style="margin-top: 15px; padding: 10px; border-radius: 5px;">
+        <option value="">All Roles</option>
+        <option value="Admin">Admin</option>
+        <option value="Member">Member</option>
+        <option value="Guest">Guest</option>
+      </select>
+
+      <table id="userTable">
+        <thead>
+          <tr>
+            <th onclick="sortTable(0)">Full Name</th>
+            <th onclick="sortTable(1)">Role</th>
+            <th onclick="sortTable(2)">Email</th>
+            <th>Phone</th>
+            <th>Password</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    let fullData = JSON.parse(localStorage.getItem("userData")) || [];
+    const tableBody = document.querySelector("#userTable tbody");
+    let selectedFile = null;
+
+    function showSection(id) {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+
+    function saveToLocal() {
+      localStorage.setItem("userData", JSON.stringify(fullData));
+    }
+
+    document.getElementById("addUserForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+      const user = {
+        fullname: document.getElementById("fullname").value,
+        role: document.getElementById("role").value,
+        email: document.getElementById("email").value,
+        phone: document.getElementById("phone").value,
+        password: document.getElementById("password").value
+      };
+      fullData.push(user);
+      saveToLocal();
+      renderTable();
+      this.reset();
+    });
+
+    function renderTable() {
+      const filter = document.getElementById("filterBar").value.toLowerCase();
+      const quizResults = JSON.parse(localStorage.getItem("quizResults")) || {};
+      const filtered = fullData.filter(u => u.role.toLowerCase().includes(filter));
+      tableBody.innerHTML = "";
+
+      filtered.forEach((user, index) => {
+        const pwdId = `pwd-${index}`;
+        const isGuest = user.role.toLowerCase() === "guest";
+        const result = quizResults[user.email] || {};
+        const test1 = result.test1 ? `${result.test1.score} (${result.test1.percentage}%)` : "N/A";
+        const test2 = result.test2 ? `${result.test2.score} (${result.test2.percentage}%)` : "N/A";
+
+        tableBody.innerHTML += `
+          <tr>
+            <td>${user.fullname}</td>
+            <td>${user.role}</td>
+            <td>${user.email}</td>
+            <td>${user.phone}</td>
+            <td>
+              <span id="${pwdId}" data-show="false">${'•'.repeat(user.password.length)}</span>
+              <i class="fas fa-eye" style="margin-left:10px; cursor:pointer;" onclick="toggleRowPassword('${pwdId}', '${user.password}', this)"></i>
+            </td>
+            <td>
+              <button class="action-btn edit-btn" onclick="editRow(${index})">Edit</button>
+              <button class="action-btn delete-btn" onclick="deleteRow(${index})">Delete</button>
+            </td>
+          </tr>
+          ${isGuest ? `
+            <tr style="background:#f9f9f9; font-size: 14px;">
+              <td colspan="6" style="padding-left: 20px;">
+                <strong>Test 1:</strong> ${test1} &nbsp;&nbsp;&nbsp;
+                <strong>Test 2:</strong> ${test2}
+              </td>
+            </tr>` : ``}
+        `;
+      });
+    }
+
+    function exportByRole(role) {
+      const quizResults = JSON.parse(localStorage.getItem("quizResults")) || {};
+      const data = [["Full Name", "Role", "Email", "Phone", "Password", "Test 1 Score", "Test 1 %", "Test 2 Score", "Test 2 %"]];
+
+      fullData.forEach(user => {
+        if (role === "all" || user.role === role) {
+          const result = quizResults[user.email] || {};
+          const t1 = result.test1 || { score: "", percentage: "" };
+          const t2 = result.test2 || { score: "", percentage: "" };
+          data.push([user.fullname, user.role, user.email, user.phone, user.password, t1.score, t1.percentage, t2.score, t2.percentage]);
+        }
+      });
+
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      XLSX.utils.book_append_sheet(wb, ws, "Users");
+      XLSX.writeFile(wb, `user-data-${role}.xlsx`);
+    }
+
+    function deleteRow(index) {
+      if (confirm("Delete this user?")) {
+        fullData.splice(index, 1);
+        saveToLocal();
+        renderTable();
+      }
+    }
+
+    function editRow(index) {
+      const user = fullData[index];
+      document.getElementById("fullname").value = user.fullname;
+      document.getElementById("role").value = user.role;
+      document.getElementById("email").value = user.email;
+      document.getElementById("phone").value = user.phone;
+      document.getElementById("password").value = user.password;
+      fullData.splice(index, 1);
+      saveToLocal();
+      renderTable();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function sortTable(colIndex) {
+      const keys = ["fullname", "role", "email"];
+      fullData.sort((a, b) => a[keys[colIndex]].localeCompare(b[keys[colIndex]]));
+      saveToLocal();
+      renderTable();
+    }
+
+    function togglePassword(icon) {
+      const pwd = document.getElementById("password");
+      pwd.type = pwd.type === "password" ? "text" : "password";
+      icon.classList.toggle("fa-eye");
+      icon.classList.toggle("fa-eye-slash");
+    }
+
+    function toggleRowPassword(spanId, realPwd, icon) {
+      const span = document.getElementById(spanId);
+      const show = span.getAttribute("data-show") === "true";
+      span.textContent = show ? '•'.repeat(realPwd.length) : realPwd;
+      span.setAttribute("data-show", !show);
+      icon.classList.toggle("fa-eye");
+      icon.classList.toggle("fa-eye-slash");
+    }
+
+    document.getElementById("filterBar").addEventListener("change", renderTable);
+
+    document.getElementById("excelInput").addEventListener("change", function(e) {
+      selectedFile = e.target.files[0];
+      document.getElementById("fileActions").style.display = selectedFile ? "flex" : "none";
+      document.getElementById("fileName").textContent = selectedFile ? selectedFile.name : "";
+    });
+
+    function uploadFile() {
+      if (!selectedFile) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const data = new Uint8Array(e.target.result);
+        const wb = XLSX.read(data, { type: "array" });
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1 });
+        rows.slice(1).forEach(row => {
+          if (row.length >= 5) {
+            fullData.push({ fullname: row[0], role: row[1], email: row[2], phone: row[3], password: row[4] });
+          }
+        });
+        saveToLocal();
+        renderTable();
+        cancelUpload();
+      };
+      reader.readAsArrayBuffer(selectedFile);
+    }
+
+    function cancelUpload() {
+      selectedFile = null;
+      document.getElementById("excelInput").value = "";
+      document.getElementById("fileActions").style.display = "none";
+      document.getElementById("fileName").textContent = "";
+    }
+
+    function logout() {
+      if (confirm("Are you sure you want to logout?")) {
+        window.location.href = "index.html";
+      }
+    }
+
+    window.addEventListener("DOMContentLoaded", renderTable);
+  </script>
+</body>
+</html>
