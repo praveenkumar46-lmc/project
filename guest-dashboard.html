@@ -20,13 +20,10 @@
     .question p { font-weight: bold; }
     #result { margin-top: 20px; text-align: center; font-size: 18px; }
     .hidden { display: none; }
-
-
-
-
-
-    
-
+    #logoutAfterResult {
+      margin-top: 20px;
+      background: #e74c3c;
+    }
   </style>
 </head>
 <body>
@@ -53,6 +50,7 @@
       </form>
 
       <div id="result"></div>
+      <button id="logoutAfterResult" class="hidden" onclick="logout()">Logout</button>
     </div>
   </div>
 
@@ -64,8 +62,16 @@
     const quizForm = document.getElementById("quizForm");
     const questionsContainer = document.getElementById("questionsContainer");
     const resultDiv = document.getElementById("result");
+    const logoutBtn = document.getElementById("logoutAfterResult");
 
     let currentUser = "";
+
+    // ✅ Auto-fill email from login if available
+    const storedEmail = localStorage.getItem("currentEmail");
+    if (storedEmail) {
+      emailInput.value = storedEmail;
+      emailInput.readOnly = true;
+    }
 
     const quizData = {
       test1: {
@@ -105,6 +111,7 @@
 
       questionsContainer.innerHTML = "";
       resultDiv.innerHTML = "";
+      logoutBtn.classList.add("hidden");
 
       if (userResult) {
         resultDiv.innerHTML = `
@@ -114,6 +121,7 @@
           ${userResult.percentage >= 75 ? "<span style='color:green;'>🎉 Passed</span>" : "<span style='color:red;'>❌ Failed</span>"}
         `;
         quizForm.style.display = "none";
+        if (testId === "test2") logoutBtn.classList.remove("hidden");
       } else {
         quizForm.style.display = "block";
         test.questions.forEach((q, i) => {
@@ -156,11 +164,17 @@
         ${percentage >= 75 ? "<span style='color:green;'>🎉 Passed</span>" : "<span style='color:red;'>❌ Failed</span>"}
       `;
       quizForm.style.display = "none";
+      if (testId === "test2") logoutBtn.classList.remove("hidden");
     });
 
     testSelector.addEventListener("change", () => {
       renderQuestions(testSelector.value);
     });
+
+    function logout() {
+      localStorage.removeItem("currentEmail"); // clear guest login session
+      window.location.href = "index.html";
+    }
   </script>
 </body>
 </html>

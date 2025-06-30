@@ -210,19 +210,29 @@
 
     function exportByRole(role) {
       const quizResults = JSON.parse(localStorage.getItem("quizResults")) || {};
-      const data = [["Full Name", "Role", "Email", "Phone", "Password", "Test 1 Score", "Test 1 %", "Test 2 Score", "Test 2 %"]];
-
-      fullData.forEach(user => {
-        if (role === "all" || user.role === role) {
-          const result = quizResults[user.email] || {};
-          const t1 = result.test1 || { score: "", percentage: "" };
-          const t2 = result.test2 || { score: "", percentage: "" };
-          data.push([user.fullname, user.role, user.email, user.phone, user.password, t1.score, t1.percentage, t2.score, t2.percentage]);
-        }
-      });
-
       const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.aoa_to_sheet(data);
+      let ws, data;
+
+      if (role === "Guest" || role === "all") {
+        data = [["Full Name", "Role", "Email", "Phone", "Password", "Test 1 Score", "Test 1 %", "Test 2 Score", "Test 2 %"]];
+        fullData.forEach(user => {
+          if (role === "all" || user.role === "Guest") {
+            const result = quizResults[user.email] || {};
+            const t1 = result.test1 || { score: "", percentage: "" };
+            const t2 = result.test2 || { score: "", percentage: "" };
+            data.push([user.fullname, user.role, user.email, user.phone, user.password, t1.score, t1.percentage, t2.score, t2.percentage]);
+          }
+        });
+      } else {
+        data = [["Full Name", "Role", "Email", "Phone", "Password"]];
+        fullData.forEach(user => {
+          if (user.role === role) {
+            data.push([user.fullname, user.role, user.email, user.phone, user.password]);
+          }
+        });
+      }
+
+      ws = XLSX.utils.aoa_to_sheet(data);
       XLSX.utils.book_append_sheet(wb, ws, "Users");
       XLSX.writeFile(wb, `user-data-${role}.xlsx`);
     }
@@ -312,6 +322,10 @@
     }
 
     window.addEventListener("DOMContentLoaded", renderTable);
+
+
+
+
   </script>
 </body>
 </html>

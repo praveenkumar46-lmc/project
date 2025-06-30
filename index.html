@@ -136,16 +136,22 @@
         u.password === password &&
         u.role.toLowerCase() === role.toLowerCase()
       );
+if (user) {
+  alert("Login Successful!");
 
-      if (user) {
-        alert("Login Successful!");
-        if (role === "Admin") {
-          window.location.href = "admin-dashboard.html";
-        } else if (role === "Member") {
-          window.location.href = "member-dashboard.html";
-        } else {
-          window.location.href = "guest-dashboard.html";
-        }
+  // Store email only if role is Guest
+  if (role === "Guest") {
+    localStorage.setItem("currentEmail", email);
+  }
+
+  if (role === "Admin") {
+    window.location.href = "admin-dashboard.html";
+  } else if (role === "Member") {
+    window.location.href = "member-dashboard.html";
+  } else {
+    window.location.href = "guest-dashboard.html"; // for guest
+  }
+
       } else {
         alert("Invalid credentials or role selected.");
       }
